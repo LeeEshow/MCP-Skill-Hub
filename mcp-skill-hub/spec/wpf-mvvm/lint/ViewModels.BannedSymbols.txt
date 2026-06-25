@@ -1,0 +1,12 @@
+; 此檔案僅適用於 ViewModels 專案，需安裝 NuGet: Microsoft.CodeAnalysis.BannedApiAnalyzers
+; Views 專案嚴禁套用此清單（Views 本來就需要使用這些 WPF API）
+
+; Layer 2 wpf-mvvm — ViewModel 嚴禁引用 System.Windows 命名空間，確保與 WPF 框架解耦並可獨立單元測試
+N:System.Windows;ViewModel 嚴禁引用 System.Windows，業務邏輯必須與 WPF 框架完全解耦
+
+; Layer 2 wpf-mvvm — 嚴禁使用 FindName() 或 VisualTreeHelper 取得 UI 元素控制權
+M:System.Windows.FrameworkElement.FindName(System.String);嚴禁使用 FindName()，ViewModel 不應取得 UI 元素控制權
+T:System.Windows.Media.VisualTreeHelper;嚴禁使用 VisualTreeHelper，ViewModel 不應感知 View 的視覺結構
+
+; Layer 2 wpf-mvvm — 嚴禁直接呼叫 MessageBox.Show()，必須透過注入的 IDialogService
+M:System.Windows.MessageBox.Show(System.String);嚴禁直接呼叫 MessageBox.Show()，必須透過注入的 IDialogService

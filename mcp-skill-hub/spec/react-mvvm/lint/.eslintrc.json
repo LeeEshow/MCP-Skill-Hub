@@ -1,0 +1,38 @@
+{
+  "parser": "@typescript-eslint/parser",
+  "plugins": ["@typescript-eslint", "react", "react-hooks"],
+  "rules": {
+    "@typescript-eslint/naming-convention": [
+      "error",
+      { "selector": "typeLike", "format": ["PascalCase"] },
+      { "selector": "variableLike", "format": ["camelCase"] },
+      { "selector": "variable", "modifiers": ["const", "global"], "format": ["camelCase", "UPPER_CASE"] }
+    ],
+    "max-lines-per-function": ["error", { "max": 30, "skipBlankLines": true, "skipComments": true }],
+    "max-params": ["error", 4],
+    "max-depth": ["error", 3],
+    "no-magic-numbers": ["error", { "ignore": [0, 1, -1], "ignoreArrayIndexes": true }],
+    "@typescript-eslint/no-unused-vars": "error",
+    "react/no-unstable-nested-components": "error",
+    "react-hooks/rules-of-hooks": "error",
+    "react-hooks/exhaustive-deps": "warn"
+  },
+  "overrides": [
+    {
+      "files": ["src/models/**/*.ts"],
+      "rules": {
+        "no-restricted-imports": ["error", {
+          "paths": [{ "name": "react", "message": "Model 層嚴禁引用 React，狀態管理屬於 ViewModel 職責" }]
+        }]
+      }
+    },
+    {
+      "files": ["src/views/**/*.tsx"],
+      "rules": {
+        "no-restricted-imports": ["error", {
+          "patterns": [{ "group": ["**/api/*", "**/models/*"], "message": "View 層嚴禁直接呼叫 API 或 Model，必須透過 ViewModel" }]
+        }]
+      }
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+# Dependencies
+node_modules/
+
+# Build output (tsc 編譯產物，npm run build 重新產生)
+mcp-skill-hub/dist/
+
+# Local scratch files
+.tmp_read_mcp.mjs
+
+# OS / editor
+.DS_Store
+Thumbs.db

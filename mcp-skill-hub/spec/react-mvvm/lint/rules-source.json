@@ -1,0 +1,16 @@
+{
+  "_purpose": "記錄 .eslintrc.json 各規則對應的來源層級，僅供人工 / AI 閱讀，不會被 ESLint 載入",
+  "rules": {
+    "@typescript-eslint/naming-convention": "Layer 1 code-style — 命名規範（PascalCase/camelCase/UPPER_CASE）",
+    "max-lines-per-function": "Layer 1 code-style — 函式長度不超過 30 行",
+    "max-params": "Layer 1 code-style — 參數上限 4 個",
+    "max-depth": "Layer 1 code-style — 嵌套深度上限 3 層",
+    "no-magic-numbers": "Layer 1 code-style — 禁用魔術數字（0, 1, -1 除外）",
+    "@typescript-eslint/no-unused-vars": "Layer 1 code-style — 禁止未使用變數 / 匯入",
+    "react/no-unstable-nested-components": "Layer 2 react-mvvm — 禁止 render 函式內定義子元件",
+    "react-hooks/rules-of-hooks": "Layer 2 react-mvvm — Hook 使用規範",
+    "react-hooks/exhaustive-deps": "Layer 2 react-mvvm — Hook 使用規範",
+    "overrides[0].no-restricted-imports": "Layer 2 react-mvvm — Model 層嚴禁管理 React State",
+    "overrides[1].no-restricted-imports": "Layer 2 react-mvvm — View 層嚴禁直接呼叫 API 或 Model"
+  }
+}
