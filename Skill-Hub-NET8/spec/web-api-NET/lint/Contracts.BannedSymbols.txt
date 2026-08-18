@@ -1,0 +1,7 @@
+; 此檔案僅適用於 MCP.Contracts 專案，需安裝 NuGet: Microsoft.CodeAnalysis.BannedApiAnalyzers
+; WebApi 專案嚴禁套用此清單（WebApi 本來就需要存取資料庫）
+
+; Layer 2 web-api-NET — MCP.Contracts 嚴禁參考任何資料庫 / ORM 套件，確保契約純粹、Client 端可安全引用
+N:System.Data.SqlClient;MCP.Contracts 嚴禁參考 System.Data.SqlClient，契約專案必須與資料庫存取完全隔離
+N:Microsoft.EntityFrameworkCore;MCP.Contracts 嚴禁參考 Microsoft.EntityFrameworkCore，DTO 不得帶有 ORM 屬性
+N:MySql.Data;MCP.Contracts 嚴禁參考 MySql.Data，契約專案必須與資料庫存取完全隔離

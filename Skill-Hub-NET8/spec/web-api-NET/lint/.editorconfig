@@ -1,0 +1,33 @@
+root = false
+
+[*.cs]
+# Layer 1 code-style — 型別使用 PascalCase
+dotnet_naming_rule.types_should_be_pascal_case.severity = error
+dotnet_naming_rule.types_should_be_pascal_case.symbols  = types
+dotnet_naming_rule.types_should_be_pascal_case.style    = pascal_case_style
+
+dotnet_naming_symbols.types.applicable_kinds = class, struct, interface, enum
+dotnet_naming_style.pascal_case_style.capitalization = pascal_case
+
+# Layer 1 code-style — 區域變數 / 參數使用 camelCase
+dotnet_naming_rule.locals_should_be_camel_case.severity = error
+dotnet_naming_rule.locals_should_be_camel_case.symbols  = locals
+dotnet_naming_rule.locals_should_be_camel_case.style    = camel_case_style
+
+dotnet_naming_symbols.locals.applicable_kinds = local, parameter
+dotnet_naming_style.camel_case_style.capitalization = camel_case
+
+# Layer 1 code-style — 全域常數使用 UPPER_SNAKE_CASE
+dotnet_naming_rule.constants_should_be_upper_snake_case.severity = error
+dotnet_naming_rule.constants_should_be_upper_snake_case.symbols  = constants
+dotnet_naming_rule.constants_should_be_upper_snake_case.style    = upper_snake_case_style
+
+dotnet_naming_symbols.constants.applicable_kinds  = field
+dotnet_naming_symbols.constants.required_modifiers = const
+dotnet_naming_style.upper_snake_case_style.capitalization  = all_upper
+dotnet_naming_style.upper_snake_case_style.word_separator  = _
+
+# Layer 1 code-style — 禁止未使用變數 / using / private 成員
+dotnet_diagnostic.IDE0005.severity = error   # 多餘的 using
+dotnet_diagnostic.IDE0051.severity = error   # 未使用的 private 成員
+dotnet_diagnostic.IDE0052.severity = error   # 未讀取的 private 成員

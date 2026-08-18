@@ -1,0 +1,11 @@
+{
+  "rules": {
+    "declaration-property-value-disallowed-list": {
+      "/^(color|background-color|border-color|fill|stroke)$/": ["/^#[0-9a-fA-F]{3,8}$/"],
+      "/^(padding|margin|gap|width|height|font-size|border-radius|top|left|right|bottom)/": ["/^(\\d+px\\s*)+$/"]
+    },
+    "declaration-property-value-allowed-list": {
+      "z-index": ["/^var\\(--/"]
+    }
+  }
+}

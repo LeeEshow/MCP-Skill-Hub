@@ -1,0 +1,9 @@
+; 此檔案僅適用於 NET-SDK 專案，需安裝 NuGet: Microsoft.CodeAnalysis.BannedApiAnalyzers
+
+; Layer 2 NET-SDK — 嚴禁引用任何資料庫套件，確保 Client 端與 DB 層完全隔離
+N:System.Data.SqlClient;NET-SDK 嚴禁引用 System.Data.SqlClient，Client 端不應知道資料庫存在
+N:Microsoft.EntityFrameworkCore;NET-SDK 嚴禁引用 Microsoft.EntityFrameworkCore
+N:MySql.Data;NET-SDK 嚴禁引用 MySql.Data
+
+; Layer 2 NET-SDK — 嚴禁在 Repository 類別內直接建立 HttpClient，避免 Socket 耗盡
+M:System.Net.Http.HttpClient.#ctor;嚴禁直接 new HttpClient()，必須透過 IHttpClientFactory 注入

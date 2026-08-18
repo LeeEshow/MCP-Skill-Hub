@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>SkillHubNet8</RootNamespace>
+    <AssemblyName>SkillHubNet8</AssemblyName>
+    <!-- 我們提供完整的 web.config（ANCM），停用 SDK 自動轉換 -->
+    <IsTransformWebConfigDisabled>true</IsTransformWebConfigDisabled>
+    <!-- 停用 SDK 預設 Content glob，改為下方明確列出，避免重複項目錯誤 -->
+    <EnableDefaultContentItems>false</EnableDefaultContentItems>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="ModelContextProtocol" Version="2.0.0" />
+    <PackageReference Include="ModelContextProtocol.AspNetCore" Version="2.0.0" />
+  </ItemGroup>
+
+  <!-- 所有 Content 明確列出（EnableDefaultContentItems=false，不依賴 SDK glob） -->
+  <ItemGroup>
+    <!-- ASP.NET Core 設定檔 -->
+    <Content Include="appsettings.json" CopyToOutputDirectory="Always" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="appsettings.*.json" CopyToOutputDirectory="Always" CopyToPublishDirectory="PreserveNewest" />
+    <!-- IIS ANCM web.config（IsTransformWebConfigDisabled=true，使用我們完整版本） -->
+    <Content Include="web.config" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <!-- 知識文件：principle / spec / skill，AppContext.BaseDirectory 下可直接讀取 -->
+    <Content Include="principle\**\*" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="skill\**\*" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="spec\**\*" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>
