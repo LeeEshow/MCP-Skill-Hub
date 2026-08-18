@@ -14,6 +14,7 @@
 - DI 容器必須於 `Program.cs` 統一以 `AddScoped` 方式注入所有 Repository 介面與實作的對應關係。
 - Request DTO 輸入驗證必須使用 Data Annotations（`[Required]`、`[MaxLength]` 等），嚴禁在 Controller 方法內以 `if` 手動驗證輸入欄位。
 - Swagger UI 僅限在 `Development` 環境啟用（`app.Environment.IsDevelopment()`），生產環境必須停用。
-- 所有 Controller Action 與公開 Request / Response DTO 必須撰寫 XML 文件備註（`/// <summary>`），確保 Swagger 自動產生 API 說明。
+- 所有 Controller Action 與公開 Request / Response DTO 必須撰寫 XML 文件備註（`/// <summary>`），確保 Swagger 自動產生 API 說明；`<summary>` 限一句話，描述成員職責，不描述內部運作方式。
 - Controller 類別必須標記 `[Produces("application/json")]`，所有 Action 必須以 `[ProducesResponseType]` 明確宣告每個 HTTP 狀態碼對應的 Response 型別。
 - WebApi 專案必須在 `.csproj` 啟用 `<GenerateDocumentationFile>true</GenerateDocumentationFile>`，並於 Swagger 設定中引入 XML 備註檔案。
+- `#region` 只用來組織對外的公開職責邊界（CRUD 群、多介面實作邊界、事件處理器、內嵌 DTO/Struct）；禁止巢狀 region，不為單一方法建立 region，禁止以實作細節分組（如 Helpers、Private Methods）。

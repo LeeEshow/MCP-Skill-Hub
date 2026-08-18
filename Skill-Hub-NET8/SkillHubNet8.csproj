@@ -10,6 +10,23 @@
     <IsTransformWebConfigDisabled>true</IsTransformWebConfigDisabled>
     <!-- 停用 SDK 預設 Content glob，改為下方明確列出，避免重複項目錯誤 -->
     <EnableDefaultContentItems>false</EnableDefaultContentItems>
+    <!-- Hosting Model 實際由 web.config 的 hostingModel="outofprocess" 決定（IsTransformWebConfigDisabled=true
+         已停用 SDK 對 web.config 的自動轉換，此處若設定 AspNetCoreHostingModel 不會有任何效果，故不重複宣告）。 -->
+  </PropertyGroup>
+
+  <!-- Self-Contained and Single File Publishing Settings：限 Release 設定生效，避免一般 dotnet build/restore
+       （預設 Debug）也被迫解析 win-x64 targeting pack，只在 dotnet publish -c Release 等 Release 建置時套用。
+       主機未裝 .NET 8 Runtime / ASP.NET Core Hosting Bundle 時，Framework-Dependent 部署會讓 ANCM
+       502.5 (Out-Of-Process Startup Failure)；改用 self-contained 單一檔案，把 Runtime 一併打包發佈，
+       主機不需要另外安裝任何東西。 -->
+  <PropertyGroup Condition="'$(Configuration)'=='Release'">
+    <PublishSingleFile>true</PublishSingleFile>
+    <PublishSelfContained>true</PublishSelfContained>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <!-- 壓縮內嵌組件可縮小發佈的 exe 體積，代價是每次程序冷啟動都要多花時間解壓縮到暫存目錄；
+         IIS/ANCM out-of-process 的 worker process 會因閒置逾時或 App Pool recycle 而重啟，
+         此成本會重複發生。目前判斷體積優先於冷啟動延遲，如日後發現啟動變慢明顯，可考慮關閉。 -->
+    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
   </PropertyGroup>
 
   <ItemGroup>

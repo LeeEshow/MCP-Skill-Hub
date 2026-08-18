@@ -16,3 +16,5 @@
 - ViewModel 建構函式僅限接收 DI 注入參數，嚴禁在建構函式內觸發非同步 I/O；所有非同步初始化必須改由 Command 觸發。
 - 跨頁面共用狀態必須提取為獨立 `SharedViewModel` 並以 Singleton 方式注入 DI 容器，嚴禁透過靜態欄位或全域變數傳遞。
 - 全 codebase 嚴禁使用 `FindName()`、`VisualTreeHelper` 或任何讓 ViewModel 取得 XAML UI 元素控制權的機制。
+- `#region` 只用來組織對外的公開職責邊界（CRUD 群、多介面實作邊界、事件處理器、內嵌 DTO/Struct）；禁止巢狀 region，不為單一方法建立 region，禁止以實作細節分組（如 Helpers、Private Methods）。
+- XML `<summary>` 限一句話，描述成員的職責與存在理由，不描述內部運作方式；禁止裝飾性橫幅與橫線分隔符。

@@ -10,3 +10,5 @@
 - 認證 Bearer Token 必須統一設定於 `HttpClient.DefaultRequestHeaders`，嚴禁在個別 Repository 方法內各自設定 `Authorization` Header。
 - `SdkException` 必須包含 HTTP 狀態碼（`StatusCode`）與 Server 回傳的 `ErrorMessage`，以利 Client 端對錯誤分類處理。
 - NET-SDK 嚴禁引用任何資料庫套件（如 `System.Data.SqlClient`、`MySql.Data`），確保 Client 端與 DB 層完全隔離。
+- `#region` 只用來組織對外的公開職責邊界（CRUD 群、多介面實作邊界、事件處理器、內嵌 DTO/Struct）；禁止巢狀 region，不為單一方法建立 region，禁止以實作細節分組（如 Helpers、Private Methods）。
+- XML `<summary>` 限一句話，描述成員的職責與存在理由，不描述內部運作方式；禁止裝飾性橫幅與橫線分隔符。
