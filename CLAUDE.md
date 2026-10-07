@@ -54,7 +54,7 @@ dotnet publish -c Release # self-contained + single-file 的 win-x64 發佈，�
 - `rules.md` / `principle/*.md`：結構化條列式，允許使用小標題（如 `##`）與粗體（`**`）組織內容，但仍禁止大段落敘述、禁止程式碼範例。
 - 規範寫作原則：寫「要達成的意圖」，不寫唯一手段；核心條文要少，讓專案在最大自由度內只遵守核心思想與 coding 方式，規範不是越多越嚴謹越好。偏離規範的記錄方式由各專案自選（見 `AIC-12`），hub 不強制格式。
 - 條文代號：每條規範以「領域前綴＋兩位數字」編號（`STY`／`OOP`／`AIC`／`API`／`SDK`／`WPF`／`RCT`／`UIT`，如 `API-11`）；標籤為「未標＝核心」「`[建議]`＝偏離無須說明」「`[前提:…]`＝符合前提才適用」。新增代號取該檔最大編號加一，不重用已刪除的號碼；被刪除的條文不在文件中留墓碑。
-- `full-spec.md`：原則上允許含範例與反例；`web-api-NET`、`ui-token` 已改為「意圖、為什麼、合格與不合格的文字界線」且不含程式碼範例，`react-mvvm`、`wpf-mvvm`、`NET-SDK` 三份尚未依同一原則檢視。
+- `full-spec.md`：原則上允許含範例與反例；`web-api-NET`、`ui-token`、`react-mvvm` 已改為「意圖、為什麼、合格與不合格的文字界線」且不含程式碼範例，`wpf-mvvm`、`NET-SDK` 兩份尚未依同一原則檢視。
 - 各檔案有 Token 上限：`principle/*.md` 各 600、`spec/{name}/rules.md` 1300、`full-spec.md` 2000、`skill/{name}.md` 800。寫超過視為規格違規，優先精簡內容，非必要不調高上限（2026-08-18 已依實際內容量重新校準過一次，調整紀錄與理由見設計規格書第 5 節）。
 - 判斷新規則該放 Layer 1（`principle/`）還是 Layer 2（`spec/`）：換了技術棧仍然成立 → Layer 1；技術棧專屬 → Layer 2，且不得與 Layer 1 重複定義。
 

@@ -1,297 +1,69 @@
 # react-mvvm 完整規範
 
-## 目錄結構
+本版只說明每條規則的意圖、原因與合格／不合格的判斷界線，不提供程式碼範例，也不指定唯一做法；目錄結構、資料與狀態方案由專案自選，達成意圖即合格。
 
-```
-src/
-├── styles/               ← ① 設計 Token（最優先）
-│   ├── tokens.css        ← CSS 自訂屬性（唯一來源）
-│   ├── global.css        ← 全域樣式 + 共用 class
-│   ├── theme.ts          ← TypeScript 版 tokens（供圖表庫 / 內聯樣式）
-│   └── index.ts          ← 統一 export 入口
-├── api/                  ← Axios 實例與攔截器
-├── types/                ← DTO / Domain 型別定義
-├── models/               ← API 呼叫 + DTO → Domain 轉換
-├── viewmodels/           ← Custom Hook（邏輯層）
-└── views/
-    ├── layout/           ← 版面元件
-    ├── components/       ← UI 共用元件
-    └── pages/            ← 頁面（組裝 View + ViewModel）
-```
+## RCT-01 View 只負責展示與互動
+- 意圖：View 不承擔資料存取與業務判斷。
+- 為什麼：View 內混入 API 呼叫或業務計算，會讓畫面難以重用與測試，也讓同一規則散落多處。
+- 合格：日期、數字、文字的純顯示格式化可在 View；呼叫 API 與業務判斷交給 View 之外的一層。
+- 不合格：View 直接呼叫 API 或資料層；View 內判斷「是否登入失敗」這類會影響業務結果的邏輯。
 
-## MVVM 對應關係
+## RCT-02 狀態與業務邏輯在 View 之外
+- 意圖：狀態與業務邏輯集中於專用層。
+- 為什麼：集中後 View 保持單純，邏輯可被獨立理解與驗證。
+- 合格：Custom Hook、Store、查詢層皆可；小頁面可由單一 Hook 同時承擔狀態與資料呼叫，只要 View 不直接做；對話框開關等 UI 區域狀態可留在元件內。
+- 不合格：業務規則與資料狀態散落在多個元件內，彼此各自維護。
 
-| MVVM      | React 對應           |
-|-----------|----------------------|
-| Model     | types/ + models/     |
-| View      | components/ / pages/ |
-| ViewModel | Custom Hooks         |
+## RCT-03 資料存取與轉換集中
+- 意圖：API 呼叫與回應轉換集中在資料層。
+- 為什麼：端點或欄位變動時只需改一處，View 不認得後端格式。
+- 合格：自建薄層、模型層或查詢庫皆可；查詢庫自帶快取與狀態屬於資料層，不算違規。
+- 不合格：各 View 自行呼叫 API 並各自轉換回應。
 
-## Types 範例
+## RCT-04 契約型別與前端型別分開（前提：兩者命名或形狀不同）
+- 意圖：後端契約的欄位不直接滲入前端使用的型別。
+- 為什麼：後端欄位命名或結構改動時，影響範圍限縮在轉換處。
+- 合格：命名風格不同（如 snake_case 與 camelCase）、格式不同或有衍生欄位，皆算形狀不同，應分開定義；兩者完全相同時不需重複定義。
+- 不合格：形狀不同卻混用同一型別，導致後端欄位名稱散布於 View。
 
-```typescript
-// types/product.ts
+## RCT-07 重複評估收斂（建議）
+- 意圖：重複 3 次以上評估抽為共用元件或共用 Hook。
+- 為什麼：重複樣板會在修改時漏改。
+- 合格：抽出共用元件、共用 Hook 皆算收斂；刻意不做通用元件（抽出後比各自維護更難懂）可接受。
+- 不合格：同一套樣板重複多份且抽出後並不複雜，卻一直複製。
 
-// DTO：對應後端 JSON（snake_case）
-export interface ProductDTO {
-  product_id: string;
-  unit_price: number;
-  stock_qty: number;
-  is_active?: boolean;
-}
+## RCT-09 不在 render 內定義子元件
+- 意圖：避免每次 render 產生新的元件參考。
+- 為什麼：新參考會使子元件反覆卸載重建，造成狀態遺失與效能問題。
+- 合格：子元件定義在模組層級。
+- 不合格：在元件函式內部定義另一個元件並於 JSX 使用。
 
-// Domain：前端使用格式（camelCase），含衍生欄位
-export interface Product {
-  productId: string;
-  unitPrice: number;
-  stockQty: number;
-  isLowStock: boolean;  // 衍生欄位，後端不提供
-  isActive: boolean;
-}
-```
+## RCT-14 過期回應不覆蓋新結果
+- 意圖：多次觸發的請求，只採用最新一次的結果。
+- 為什麼：慢的舊請求晚到，會把畫面改回舊資料。
+- 合格：Request ID、取消旗標、AbortController 或查詢庫皆可；請求只在掛載時載入一次且參數不再變動者，不需額外機制。
+- 不合格：搜尋、切換條件等會連續觸發的請求，未處理舊回應晚到的情況。
 
-## Model 範例
+## RCT-15 錯誤訊息的來源可信
+- 意圖：使用者只看到設計給使用者看的訊息。
+- 為什麼：後端例外訊息、堆疊或內部路徑一旦顯示，會洩漏內部細節；前端兜底可避免後端疏漏。
+- 合格：後端明確提供的業務錯誤（如 4xx 欄位驗證原因）、後端固定的通用文字（如 500／502／504 的固定訊息）、前端對逾時或網路錯誤的固定訊息；技術細節僅開發環境輸出。後端不洩漏的責任見 API-11，兩者各自負責。
+- 不合格：直接顯示來源不明的 5xx 訊息、例外文字或堆疊；於正式環境輸出完整錯誤物件。
 
-```typescript
-// models/productModel.ts
-import { apiClient } from '../api/axios';
-import { ProductDTO, Product } from '../types/product';
+## RCT-16 不將未處理的使用者內容當 HTML 插入
+- 意圖：避免跨站腳本（XSS）。
+- 為什麼：未跳脫的使用者內容若被解析為 HTML 或腳本，可在本站身分下執行，竊取登入資料。
+- 合格：一般文字以框架標準方式輸出（自動跳脫）；必要時先 sanitize；寫入純靜態內容、Excel 或 CSV 匯出的儲存格內容不屬 HTML 插入。
+- 不合格：將使用者輸入以 innerHTML、dangerouslySetInnerHTML 或 document.write 直接插入而未跳脫。
 
-export const fetchProducts = async (): Promise<Product[]> => {
-  const res = await apiClient.get<ProductDTO[]>('/products');
-  return res.data.map(fromDTO);
-};
+## RCT-17 錯誤邊界（建議）
+- 意圖：render 例外不造成整個畫面白屏。
+- 為什麼：未捕捉的 render 例外會讓應用整個無法使用。
+- 合格：應用根層或路由層級設有錯誤邊界。
+- 不合格：完全沒有錯誤邊界。
 
-// 私有轉換函式（snake_case → camelCase + 計算衍生欄位）
-const fromDTO = (dto: ProductDTO): Product => ({
-  productId:  dto.product_id,
-  unitPrice:  dto.unit_price,
-  stockQty:   dto.stock_qty,
-  isLowStock: dto.stock_qty < 10,
-  isActive:   dto.is_active ?? true,
-});
-```
-
-## ViewModel 範例
-
-```typescript
-// viewmodels/useProductsViewModel.ts
-import { useEffect, useState, useCallback } from 'react';
-import { fetchProducts } from '../models/productModel';
-import { Product } from '../types/product';
-
-export const useProductsViewModel = () => {
-  const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading]   = useState(false);
-  const [error, setError]       = useState<string | null>(null);
-
-  const totalCount    = products.length;
-  const lowStockCount = products.filter(p => p.isLowStock).length;
-
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      setProducts(await fetchProducts());
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Unknown error');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => { load(); }, [load]);
-
-  return { products, loading, error, totalCount, lowStockCount, reload: load };
-};
-```
-
-## View 範例
-
-```typescript
-// views/pages/ProductListPage.tsx
-import { useProductsViewModel } from '../../viewmodels/useProductsViewModel';
-import DataTable from '../../components/DataTable';
-import { LoadingPanel } from '../../components/LoadingPanel';
-
-const ProductListPage: React.FC = () => {
-  const vm = useProductsViewModel();
-  if (vm.loading) return <LoadingPanel />;
-  return (
-    <DataTable
-      data={vm.products}
-      rowKey="productId"
-      columns={[
-        { key: 'productId', label: '商品編號' },
-        { key: 'unitPrice', label: '單價', align: 'right' },
-      ]}
-    />
-  );
-};
-```
-
-## Hook 規範
-
-### 禁止在 render 函式內定義子元件
-
-```typescript
-// ❌ 錯誤：每次 render 產生新參考，導致 unmount/remount
-const Panel = () => {
-  const ActionBtn = ({ label }: { label: string }) => (
-    <button>{label}</button>
-  );
-  return <ActionBtn label="送出" />;
-};
-
-// ✅ 正確：移到 module scope
-const ActionBtn = ({ label }: { label: string }) => (
-  <button>{label}</button>
-);
-const Panel = () => <ActionBtn label="送出" />;
-```
-
-### useLatest 模式
-
-```typescript
-// utils/useLatest.ts
-export function useLatest<T>(value: T) {
-  const ref = useRef(value);
-  ref.current = value;
-  return ref;
-}
-
-// ✅ 正確：空 deps interval，永遠讀到最新 vm
-const vmRef = useLatest(vm);
-useEffect(() => {
-  const id = setInterval(() => {
-    vmRef.current.refresh(); // callback 讀取，安全
-  }, 5000);
-  return () => clearInterval(id);
-}, []);
-
-// ❌ 禁止：在 render 路徑讀取 ref
-const doubled = vmRef.current.value * 2; // render 路徑讀取，禁止
-```
-
-### Effect 內 setState
-
-```typescript
-// ✅ 加具名 eslint-disable 說明理由
-useEffect(() => {
-  // eslint-disable-next-line react-hooks/set-state-in-effect -- modal open draft reset
-  if (open) setDraft(initialValue);
-}, [open]);
-```
-
-### 共用 Input Draft Hook
-
-```typescript
-// hooks/useDraftValue.ts
-export const useDraftValue = (externalValue: number, onCommit: (raw: string) => void) => {
-  const [draft, setDraft] = useState(String(externalValue));
-  // eslint-disable-next-line react-hooks/set-state-in-effect -- sync on external value change
-  useEffect(() => { setDraft(String(externalValue)); }, [externalValue]);
-  const commit = (raw: string) => {
-    const n = parseFloat(raw);
-    if (!isNaN(n)) onCommit(raw);
-    else setDraft(String(externalValue));
-  };
-  return { draft, setDraft, commit };
-};
-```
-
-## 非同步可靠性
-
-### 防 Stale Response
-
-```typescript
-// Request ID 模式
-const reqIdRef = useRef(0);
-const load = useCallback(async (query: string) => {
-  const id = ++reqIdRef.current;
-  setLoading(true);
-  try {
-    const data = await fetchData(query);
-    if (id !== reqIdRef.current) return;
-    setData(data);
-  } finally {
-    if (id === reqIdRef.current) setLoading(false);
-  }
-}, []);
-
-// Cancelled Flag 模式（適用 useEffect mount 請求）
-useEffect(() => {
-  let cancelled = false;
-  fetchOptions().then(list => {
-    if (cancelled) return;
-    setOptions(list);
-  });
-  return () => { cancelled = true; };
-}, []);
-```
-
-### API 錯誤處理
-
-```typescript
-// api/client.ts
-apiClient.interceptors.response.use(
-  response => response,
-  error => {
-    // DEV 環境完整輸出便於除錯
-    if (import.meta.env.DEV) {
-      console.error('[API Error Source Details]', error);
-    }
-    // PROD 環境阻斷技術細節，只回傳使用者友善訊息
-    let userMessage = '系統維護中，請稍後再試。';
-    if (error.response?.data?.message) {
-      userMessage = error.response.data.message; // 採用後端包裹的業務錯誤訊息
-    } else if (error.message?.includes('timeout')) {
-      userMessage = '連線逾時，請檢查您的網路狀態。';
-    }
-    return Promise.reject(new Error(userMessage));
-  }
-);
-```
-
-## 效能優化
-
-```typescript
-// ❌ 高頻事件 setState
-const onMouseMove = (e: MouseEvent) => {
-  setPosition({ x: e.clientX, y: e.clientY }); // 每次移動都 re-render
-};
-
-// ✅ 直接操作 DOM，結束時才提交
-const onMouseMove = useCallback((e: MouseEvent) => {
-  elementRef.current!.style.transform = `translate(${e.clientX}px, ${e.clientY}px)`;
-}, []);
-const onMouseUp = useCallback((e: MouseEvent) => {
-  setPosition({ x: e.clientX, y: e.clientY }); // 只提交一次
-}, []);
-
-// Context Provider value 必須 memoize
-const value = useMemo(() => ({ data, actions }), [data, actions]);
-return <MyContext.Provider value={value}>{children}</MyContext.Provider>;
-```
-
-## 安全性
-
-```typescript
-// ❌ 禁止：dangerouslySetInnerHTML 直接插入未處理的使用者內容（XSS 風險）
-return <div dangerouslySetInnerHTML={{ __html: userInput }} />;
-
-// ✅ 正確：文字內容走 React 標準大括號，自動轉義
-return <div>{userInput}</div>;
-
-// ✅ 必要時才用 dangerouslySetInnerHTML，且必須先以 DOMPurify sanitize
-import DOMPurify from 'dompurify';
-const cleanHtml = useMemo(() => DOMPurify.sanitize(dirtyHtml), [dirtyHtml]);
-return <div dangerouslySetInnerHTML={{ __html: cleanHtml }} />;
-
-// ❌ 禁止：DOM 操作直接插入使用者資料
-element.innerHTML = `<td>${userValue}</td>`;
-
-// ✅ 正確：DOM 操作改用 textContent（瀏覽器自動 escape）
-const td = document.createElement('td');
-td.textContent = userValue;
-```
+## RCT-18 敏感資料不外洩
+- 意圖：敏感資料不出現在 console 與 URL。
+- 為什麼：console 輸出與 URL 會留在記錄、瀏覽歷史或被轉貼。
+- 合格：Token、密碼、個資正式環境不輸出至 console、不放入 URL；Token 存於 sessionStorage、記憶體或 Cookie 由專案決定並於專案文件聲明，本條不判斷存放位置的安全性。
+- 不合格：把 Token 放進 URL 查詢字串；在正式環境印出含授權標頭的請求物件。

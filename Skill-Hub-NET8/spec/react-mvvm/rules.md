@@ -2,18 +2,14 @@
 
 代號格式：未標＝核心（偏離須讓審查者查得到原因，見 AIC-12）；`[建議]`＝偏離無須說明；`[前提:…]`＝符合前提才適用。
 
-- RCT-01 View 層僅限 UI 展示與互動，嚴禁呼叫 API、執行業務計算或直接變更全域狀態。
-- RCT-02 ViewModel 層必須以 Custom Hook 實作，專職管理 State、跨資料彙總與業務邏輯，嚴禁內聯 UI 樣式。
-- RCT-03 Model 層專職 API 呼叫與 DTO 到 Domain 的資料轉換（轉換邏輯內聚於 model 內），嚴禁管理 React State。
-- RCT-04 Types 層必須將後端 DTO（命名依後端 JSON 政策，如 snake_case）與前端 Domain（camelCase）分開定義，兩者在型別與變數上嚴禁混用。
-- RCT-05 專案開發順序強制為：styles/（設計 Token） → components/（共用 UI） → layout/ → pages/（頁面組裝）。
-- RCT-06 頁面（pages/）只能組裝元件與綁定 ViewModel，嚴禁自行定義區域樣式或重複實作已有功能。
-- RCT-07 跨頁面重複使用達 2 次（含）以上之 UI 結構，必須抽離為 components/ 下的共用元件。
-- RCT-08 所有樣式（CSS/TS）必須引用系統 Token（var(--xxx) 或 theme.ts），全 codebase 嚴禁硬編碼顏色與尺寸數值（Token 定義檔本身除外）。
-- RCT-09 嚴禁在 React Component（render 函式）內部定義子元件，避免重複 unmount/remount 造成效能問題。
-- RCT-10 每個源碼檔案僅限 export 一種類型實體（元件、Hook 或 Context 必須完全分檔存放）。
-- RCT-11 嚴禁在 render 執行期間寫入 Ref 並於同一次 render 路徑中讀取它（useLatest 模式的 Callback 讀取除外）。
-- RCT-12 在 useEffect 內部使用 setState 造成 Re-render 時，必須加上具名 eslint-disable 並撰寫註解說明架構理由。
-- RCT-13 表單或輸入框的重複緩衝邏輯（Draft State + useEffect 同步 + onBlur 提交）必須提取為共用 Hook。
-- RCT-14 面對多次觸發的非同步請求，必須實作防 Stale Response 機制（限用 Request ID 或 Cancelled Flag 模式）。
-- RCT-15 API 錯誤技術細節僅限在 DEV 環境輸出 console.error；PROD 環境必須全面阻斷並轉換為使用者友善提示。
+- RCT-01 View 只負責展示與互動，不呼叫 API、不執行會影響業務結果的計算（純顯示格式化可在 View）。
+- RCT-02 狀態與業務邏輯集中在 View 之外的一層（Custom Hook、Store、查詢層皆可）。
+- RCT-03 API 呼叫與回應轉換集中在資料層，不散落於 View。
+- RCT-04 [前提:後端契約與前端使用的欄位命名或形狀不同] 契約型別與前端使用型別分開定義，不混用。
+- RCT-07 [建議] 重複達 3 次應評估抽為共用元件或共用 Hook，且抽出後不應需要大量條件分支。
+- RCT-09 不在 React Component 的 render 內定義子元件。
+- RCT-14 多次觸發的非同步請求，過期回應不得覆蓋較新結果；手段自選。
+- RCT-15 呈現給使用者的錯誤訊息，須是設計給使用者看的訊息（後端明確提供的業務錯誤或後端固定的通用文字）或前端自己的通用友善訊息；網路、逾時、格式非預期，以及來源不明的 5xx 訊息，一律改用通用訊息；技術細節僅開發環境輸出。
+- RCT-16 不將未處理的使用者內容當 HTML 或腳本插入（如 innerHTML、dangerouslySetInnerHTML、document.write 寫入未跳脫的使用者資料），必要時先 sanitize；寫入純靜態內容不算違規。
+- RCT-17 [建議] 應用根層或路由層級設錯誤邊界。
+- RCT-18 Token、密碼、個資等敏感資料，正式環境不輸出至 console，也不放入 URL；存放位置由專案決定並於專案文件聲明。

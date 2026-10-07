@@ -140,7 +140,7 @@ name（必填）：code-review | version-control
 |------|------|-----------|---------|
 | `principle/*.md` | 語言無關通用原則，3 份 | 各 600 | 結構化條列式，允許小標題與粗體，禁止段落、禁止範例 |
 | `spec/{name}/rules.md` | 技術棧日常開發規則 | 1300 | 同上 |
-| `spec/{name}/full-spec.md` | Code Review 用完整規範 | 2000 | 說明每條的意圖、原因與合格／不合格界線；`web-api-NET`、`ui-token` 已不含程式碼範例，其餘三份尚未檢視 |
+| `spec/{name}/full-spec.md` | Code Review 用完整規範 | 2000 | 說明每條的意圖、原因與合格／不合格界線；`web-api-NET`、`ui-token`、`react-mvvm` 已不含程式碼範例，其餘兩份尚未檢視 |
 | `skill/{name}.md` | 任務型行為指令 | 800 | 角色定義＋執行步驟＋輸出格式 |
 | `spec/{name}/summary.md` | 歷史遺留，Tool 化後無消費者 | 60 | 不再需要新寫，舊檔案可保留但不用維護 |
 
@@ -153,11 +153,11 @@ name（必填）：code-review | version-control
 ### 5.1 規範撰寫原則（2026-10-07）
 
 - **寫意圖，不寫唯一手段**：規範說明要達成什麼，手段由專案自選；同一類專案（Domain 型、Gateway 型、整合型、BFF 等）都能在核心之內自由設計。
-- **核心要少**：實測發現過度具體的規範會逼出多餘設計與大量偏離說明（兩個專案 PM 的回饋，其中對「SE 實際卡關」的判斷屬推論），因此將 `web-api-NET` 由 20 條精簡為 9 條、`ui-token` 由 12 條精簡為 4 條，Layer 1 亦同步精簡；特定架構做法（如 `Model<T>`／`BaseModel`）不再列為規範，目前也不放入範例。
+- **核心要少**：實測發現過度具體的規範會逼出多餘設計與大量偏離說明（兩個專案 PM 的回饋，其中對「SE 實際卡關」的判斷屬推論），因此將 `web-api-NET` 由 20 條精簡為 9 條、`ui-token` 由 12 條精簡為 4 條、`react-mvvm` 由 15 條精簡為 11 條（含新增 XSS、敏感資料與錯誤邊界），Layer 1 亦同步精簡；特定架構做法（如 `Model<T>`／`BaseModel`）不再列為規範，目前也不放入範例。
 - **條文代號與標籤**：每條有「領域前綴＋兩位數字」代號（`STY`／`OOP`／`AIC`／`API`／`SDK`／`WPF`／`RCT`／`UIT`）；未標＝核心，`[建議]`＝偏離無須說明，`[前提:…]`＝符合前提才適用。新增取該檔最大編號加一，不重用已刪除號碼，文件內不留墓碑。
 - **偏離說明由專案自選**：核心條文的偏離須讓審查者查得到原因（`AIC-12`），位置與格式由專案決定，hub 不強制豁免表；規範未涵蓋的合理做法不視為偏離。
 - **Layer 1 只放語言無關內容**：`#region`、`<summary>` 這類 C# 專屬規則已移到對應的 C# 規範（Layer 1 的判斷標準）。
-- 套用範圍：目前只檢視 Layer 1、`web-api-NET`、`ui-token`；`react-mvvm`、`wpf-mvvm`、`NET-SDK` 待後續決定是否套用同一原則。
+- 套用範圍：目前已檢視 Layer 1、`web-api-NET`、`ui-token`、`react-mvvm`；`wpf-mvvm` 目前沒有專案使用、`NET-SDK` 尚未檢視，待後續決定是否套用同一原則。
 
 **新增 Spec** 流程：`spec/` 下建立資料夾 → 寫 `rules.md` → 寫 `full-spec.md` → 在 `Tools/KnowledgeTools.cs` 的 `ValidSpecNames` 加上名稱 → 更新 `get_spec` 的 `[Description]` 文字。
 
