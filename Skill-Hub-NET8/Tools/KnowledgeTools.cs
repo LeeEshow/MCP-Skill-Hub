@@ -53,11 +53,12 @@ public sealed class KnowledgeTools(CallLogService callLog)
         "react-mvvm（React/TSX 元件）、wpf-mvvm（WPF/XAML 桌面應用）、" +
         "web-api-NET（.NET Web API/Controller/Repository 後端）、NET-SDK（.NET Client SDK/HttpClient 相關）、" +
         "ui-token（CSS/SCSS 設計系統 Token）。" +
-        "tier 預設 rules（日常開發規則）；進行 Code Review 或需要完整範例時使用 full。")]
+        "tier 預設 rules（日常開發規則）；進行 Code Review 或需要完整規範時使用 full；" +
+        "切換版本的參數名稱是 tier（不是 mode 等其他名稱），傳錯參數名稱會被忽略並回傳 rules。")]
     public string GetSpec(
         [Description("技術棧名稱，必須是以下之一：react-mvvm | wpf-mvvm | web-api-NET | NET-SDK | ui-token")]
         string name,
-        [Description("rules（日常開發規則，預設值）或 full（Code Review 完整版，含範例反例）")]
+        [Description("rules（日常開發規則，預設值）或 full（Code Review 完整版，含意圖與合格／不合格界線，部分技術棧另含範例）")]
         string tier = "rules")
     {
         if (!ValidSpecNames.Contains(name))
