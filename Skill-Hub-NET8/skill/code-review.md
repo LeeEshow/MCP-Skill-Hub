@@ -6,6 +6,17 @@
 
 ---
 
+## 共同前置：偏離說明與前提（兩種模式皆適用）
+
+1. **查找偏離說明**：查看被審查檔案所屬專案的文件（如 CLAUDE.md、設計文件）及程式碼備註是否說明了偏離 Hub 規範的做法；格式不限，找不到視為「未見偏離說明」。
+2. **條文代號與標籤**：規則以 `rules` 版的代號與標籤為準，`full` 版說明每條的意圖與合格界線。未標＝核心；`[建議]` 偏離不需說明，僅列為 Suggestion；`[前提:…]` 先判斷專案是否符合前提，不符合者不套用。
+3. **意圖優先**：手段不同但已達成條文意圖者視為合格，不報違規；規範未涵蓋的合理做法不視為違規。
+4. **已說明偏離**：專案已說明原因的偏離，列為「已知偏離，不報」，僅於摘要註記筆數。
+5. **未說明偏離**：核心條文的違規找不到任何偏離說明時照常回報，並標註「未見偏離說明」。
+6. 報告中「違反規則」欄必須帶條文代號（如 `API-11`）。
+
+---
+
 ## Orchestrator 模式（無指定範圍）
 
 ### Phase 1：準備知識上下文
@@ -18,7 +29,7 @@
    - 無對應特徵：僅使用 Layer 1
 2. 呼叫工具讀取以下資源（讀一次，內容將傳入所有 Sub-agent）：
    - Layer 1：`get_layer1_principles`
-   - Layer 2：`get_spec(name, tier="full")`（若有對應 Spec）
+   - Layer 2：`get_spec(name, tier="rules")`（代號與標籤）與 `get_spec(name, tier="full")`（範例），若有對應 Spec
 
 ### Phase 2：派出三個平行 Agent
 同時啟動以下三個 Agent，每個 Agent 的 prompt 須包含：**程式碼內容 + 已讀取的 Principle/Spec 全文 + 各自的審查焦點 + 輸出格式說明**。Sub-agent 不需再次呼叫 MCP 工具。
@@ -74,7 +85,7 @@
 
 ### Step 1：識別技術棧與讀取資源
 1. 分析技術棧，選擇對應 Layer 2 Spec（同 Orchestrator Phase 1）
-2. 呼叫 `get_layer1_principles` + `get_spec(name, tier="full")`
+2. 呼叫 `get_layer1_principles` + `get_spec(name, tier="rules")` + `get_spec(name, tier="full")`，並先執行「共同前置」
 
 ### Step 2：依指定範圍審查
 對應使用者指定的面向，執行 Agent A / B / C 其中一個的審查焦點。
@@ -105,6 +116,7 @@
 - {列出程式碼中符合規範的關鍵優良設計，予以肯定}
 
 **總結**：🔴 Critical x {count} | 🟡 Warning x {count} | 🔵 Suggestion x {count}
+**偏離**：已說明偏離 {count} 條（不報）| 未見說明 {count} 條
 
 ---
 

@@ -49,6 +49,9 @@
 - Summary 以動詞開頭（新增、修正、重構、移除、更新）
 - Scope 為受影響的模組或元件名稱（如 `auth`、`ProductViewModel`、`SampleController`）
 - Body 說明「為何這樣改」，不重述 summary 已說明的內容
+- 單一儲存庫含多端（前端／後端）時，scope 或標題前綴二擇一須能辨識所屬端或模組，規則由專案自訂並記錄於專案 CLAUDE.md；儲存庫根目錄的變更須使用能辨識為根目錄的 scope
+- 文件類變更使用獨立的 `docs` commit，不與程式碼變更混在同一個 commit
+- 多位 SE 共用同一工作目錄、由單一角色（如 PM）統一提交時，依後端／前端／文件分批 commit，每個 commit 僅含單一 scope 的變更，並以 `git commit -- 路徑` 只提交指定路徑，不得混入他人未完成的變更
 
 **輸出範例：**
 ```
@@ -138,7 +141,7 @@ hotfix/PROJ-99-payment-null-exception
 2. 安裝依賴（快取 node_modules / .nuget）
 3. 型別檢查 / 編譯
 4. Lint 檢查
-5. 單元測試 + 覆蓋率報告
+5. 單元測試 + 覆蓋率報告（專案採替代驗收時，改為對應的 Lint／型別檢查）
 6. Build Artifact
 7. （CD）部署至對應環境
 ```

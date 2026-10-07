@@ -1,7 +1,7 @@
 # MCP Skill Hub — 設計規格書
 
 > 狀態：Skill-Hub-NET8 已上線使用中（IIS 部署於 `D:\IIS\Skill-Hub`，Claude Code 每日呼叫中，Call Log 有連續使用紀錄）
-> 最後更新：2026-08-18
+> 最後更新：2026-10-07（規範精簡與代號機制，見 5.1；知識檔原始碼已更新，尚未重新部署到 IIS）
 >
 > **文件沿革**：本文件整合並取代三份舊文件——`MCP_Skill_Hub_概念設計文件.md`（v0.1 概念稿）、`MCP_Skill_Hub_設計規格書.md`（v1，Resource/Prompt 架構，已刪除）、`MCP_Skill_Hub_設計規格書_v2_Tool化.md`（v2，規劃 `Dev-Core-Hub` Node/TS Tool 架構，已刪除）。三份文件的架構討論與決策紀錄已濃縮併入本文，不再各自保留、也不再區分 v1/v2——**本文件只描述現況**。
 >
@@ -41,6 +41,7 @@
 
 - 不替代人工進行架構決策
 - 不強制限定技術選型或框架選擇
+- 不追求規範越多越嚴謹：規範只規定核心設計思想與 coding 方式，不限定唯一做法（見 5.1）
 
 ---
 
@@ -129,15 +130,17 @@ name（必填）：code-review | version-control
 
 取代原本規劃用 Prompt 服務 Skill 的做法——Prompt 在 Claude Desktop 上有跟 Resource 一樣「只能手動插入」的限制。Skill 內容（角色定義、執行步驟、輸出格式）不變，只是取得方式從「使用者選擇 Prompt 範本」變成「AI 自主呼叫後把內容當作後續執行指引」。
 
+`code-review` 在未指定審查範圍時，由主 Agent 讀取知識後派出三個平行 Agent（架構與規範合規、程式碼 Bug、重複程式碼收斂），彙整去重後輸出單一報告；審查前先查看專案文件與程式碼備註是否說明了偏離，已說明者不報，核心條文違規且無說明者照報。
+
 ---
 
 ## 5. 知識內容撰寫規範（硬性格式要求）
 
 | 檔案 | 用途 | Token 上限 | 格式限制 |
 |------|------|-----------|---------|
-| `principle/*.md` | 語言無關通用原則，3 份 | 各 600 | 條列式，每條一行，禁止段落敘述、禁止範例 |
+| `principle/*.md` | 語言無關通用原則，3 份 | 各 600 | 結構化條列式，允許小標題與粗體，禁止段落、禁止範例 |
 | `spec/{name}/rules.md` | 技術棧日常開發規則 | 1300 | 同上 |
-| `spec/{name}/full-spec.md` | Code Review 用完整規範 | 2000 | 才允許含範例與反例 |
+| `spec/{name}/full-spec.md` | Code Review 用完整規範 | 2000 | 說明每條的意圖、原因與合格／不合格界線；`web-api-NET`、`ui-token` 已不含程式碼範例，其餘三份尚未檢視 |
 | `skill/{name}.md` | 任務型行為指令 | 800 | 角色定義＋執行步驟＋輸出格式 |
 | `spec/{name}/summary.md` | 歷史遺留，Tool 化後無消費者 | 60 | 不再需要新寫，舊檔案可保留但不用維護 |
 
@@ -146,6 +149,15 @@ name（必填）：code-review | version-control
 > `principle` 與 `rules.md` 上限於 2026-08-18 重新校準：原 200 / 400 上限對單一語言無關原則、或單一完整技術棧規則集而言過於嚴苛，實際內容（尤其 web-api-NET / wpf-mvvm 這類規則條目較多的技術棧）長期穩定超標，代表舊上限低估了「日常開發規則」應有的資訊量，而非內容本身需要精簡。新上限仍是硬上限——未來新增規則若使檔案超過新上限，一樣先嘗試精簡表達，精簡後仍超過才可再次調高上限（並在此處留下調整紀錄），不可無記錄地放寬。
 
 判斷新規則該放 Layer 1 還是 Layer 2：換了技術棧仍然成立 → Layer 1；技術棧專屬 → Layer 2，且不得與 Layer 1 重複定義。
+
+### 5.1 規範撰寫原則（2026-10-07）
+
+- **寫意圖，不寫唯一手段**：規範說明要達成什麼，手段由專案自選；同一類專案（Domain 型、Gateway 型、整合型、BFF 等）都能在核心之內自由設計。
+- **核心要少**：實測發現過度具體的規範會逼出多餘設計與大量偏離說明（兩個專案 PM 的回饋，其中對「SE 實際卡關」的判斷屬推論），因此將 `web-api-NET` 由 20 條精簡為 9 條、`ui-token` 由 12 條精簡為 4 條，Layer 1 亦同步精簡；特定架構做法（如 `Model<T>`／`BaseModel`）不再列為規範，目前也不放入範例。
+- **條文代號與標籤**：每條有「領域前綴＋兩位數字」代號（`STY`／`OOP`／`AIC`／`API`／`SDK`／`WPF`／`RCT`／`UIT`）；未標＝核心，`[建議]`＝偏離無須說明，`[前提:…]`＝符合前提才適用。新增取該檔最大編號加一，不重用已刪除號碼，文件內不留墓碑。
+- **偏離說明由專案自選**：核心條文的偏離須讓審查者查得到原因（`AIC-12`），位置與格式由專案決定，hub 不強制豁免表；規範未涵蓋的合理做法不視為偏離。
+- **Layer 1 只放語言無關內容**：`#region`、`<summary>` 這類 C# 專屬規則已移到對應的 C# 規範（Layer 1 的判斷標準）。
+- 套用範圍：目前只檢視 Layer 1、`web-api-NET`、`ui-token`；`react-mvvm`、`wpf-mvvm`、`NET-SDK` 待後續決定是否套用同一原則。
 
 **新增 Spec** 流程：`spec/` 下建立資料夾 → 寫 `rules.md` → 寫 `full-spec.md` → 在 `Tools/KnowledgeTools.cs` 的 `ValidSpecNames` 加上名稱 → 更新 `get_spec` 的 `[Description]` 文字。
 
@@ -192,7 +204,7 @@ Skill-Hub-NET8/
 │   └── KnowledgeTools.cs    # 3 個知識層 Tool
 ├── Services/
 │   └── CallLogService.cs    # 呼叫紀錄
-├── principle/*.md           # 從舊 v1 內容複製，內容不變
+├── principle/*.md           # 語言無關通用原則（code-style / oop-ddd / ai-collaboration）
 ├── spec/{name}/{rules.md, full-spec.md, lint/...}
 ├── skill/*.md
 ├── web.config                # IIS ANCM 設定（out-of-process）
@@ -230,6 +242,7 @@ Skill-Hub-NET8/
 3. **模糊陳述下 Tool 呼叫率不如預期**，靠強制語氣 description ＋ Server 層級 `ServerInstructions` 欄位修正（見 3.2）。Client 端是否確實把 `ServerInstructions` 餵進模型上下文，取決於各 Client 實作，效果需持續留意。
 4. **拒絕在 Tool 回傳內容中插入偽造的系統權威標頭**（如 `[SYSTEM INSTRUCTION]`）：與 Prompt Injection 手法相同，不安全也不可靠；`ServerInstructions` 是協定正式定義的合法欄位，兩者性質不同，不衝突。
 5. **驗證層與知識層分流的判斷標準**：消費者是 AI 的語意判斷 → Tool；消費者是腳本的決定性讀取 → Resource。這條界線在後續任何新增內容時都適用。
+6. **規範寫意圖、核心要少**（2026-10-07）：多個專案實際引用後，過度具體的條文（特定分層、固定命名、固定狀態碼）讓非該類型的專案不是產生多餘設計，就是要額外說明偏離。決議改為意圖式、精簡核心、偏離說明由專案自選（見 5.1）。尚未實測精簡後的效果，部署後再評估。
 
 ---
 

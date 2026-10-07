@@ -1,426 +1,57 @@
 # web-api-NET 完整規範
 
-## 專案結構
-
-```
-Solution/
-├── MCP.Contracts/                      ← 共用專案，Server 與 Client 都引用
-│   ├── DTOs/
-│   │   ├── SampleDto.cs               ← 純資料 DTO，無 ORM/Domain 邏輯
-│   │   └── ApiResponse.cs             ← 統一回應包裝
-│   └── Repositories/
-│       └── ISampleRepository.cs       ← Repository 介面，方法簽章僅用 DTO
-│
-└── WebApi/                            ← ASP.NET Core Web API 專案
-    ├── Domain/                        ← Domain Entity，僅 Server 端內部使用
-    │   ├── BaseModel.cs
-    │   ├── Model.cs
-    │   └── Sample.cs
-    ├── ValueObjects/
-    │   └── ObjectType.cs
-    ├── Mapping/
-    │   └── SampleMappingExtensions.cs ← Domain Entity ↔ DTO 轉換
-    ├── Controllers/
-    │   └── SampleController.cs
-    ├── DTOs/
-    │   └── SampleRequest.cs           ← Web API 專屬的 Request DTO
-    ├── Infrastructure/
-    │   └── Repositories/
-    │       └── SqlSampleRepository.cs ← SQL 實作，回傳 DTO
-    └── Program.cs                     ← DI 注入 + Swagger 設定
-```
-
-**邊界原則**：`MCP.Contracts` 只能包含純資料結構與介面，嚴禁參考 WebApi 專案；`WebApi` 參考 `MCP.Contracts` 並實作介面。Domain Entity（`Sample`）只活在 `WebApi` 專案內部，永遠不會跨越 Repository 介面的邊界。
-
-## MCP.Contracts（共用契約）
-
-### DTO
-
-```csharp
-// MCP.Contracts/DTOs/SampleDto.cs
-/// <summary>Sample 的傳輸契約，純資料結構，不含任何方法或 ORM 屬性</summary>
-public class SampleDto
-{
-    public string Id { get; init; }
-    public string Name { get; init; }
-    public string TypeId { get; init; }
-    public string TypeName { get; init; }
-    public string Data { get; init; }
-}
-```
-
-### Repository 介面
-
-```csharp
-// MCP.Contracts/Repositories/ISampleRepository.cs
-/// <summary>
-/// Sample 的資料存取契約。回傳型別與參數型別僅限 DTO，
-/// 確保 Server（SQL 實作）與 Client（HTTP 實作）共用同一介面時，
-/// Client 端完全不需要知道 Server 端的 Domain Entity 結構。
-/// </summary>
-public interface ISampleRepository
-{
-    Task<SampleDto?> FindByIdAsync(string id);
-    Task<IReadOnlyList<SampleDto>> FindAllAsync();
-    Task<bool> RegisterAsync(SampleDto sample);
-    Task<bool> UpdateAsync(SampleDto sample);
-}
-```
-
-### 統一回應包裝
-
-```csharp
-// MCP.Contracts/DTOs/ApiResponse.cs
-/// <summary>統一 API 回應結構</summary>
-public class ApiResponse<T>
-{
-    public bool Success { get; init; }
-    public T Data { get; init; }
-    public string ErrorMessage { get; init; }
-
-    public static ApiResponse<T> Ok(T data) =>
-        new() { Success = true, Data = data };
-
-    public static ApiResponse<T> Fail(string message) =>
-        new() { Success = false, ErrorMessage = message };
-}
-```
-
-## WebApi（Server 端內部）
-
-### Domain Entity（僅 Server 端使用，不暴露給 Client）
-
-```csharp
-// WebApi/Domain/BaseModel.cs
-public abstract class BaseModel
-{
-    public abstract string Id { get; init; }
-    public abstract string Name { get; init; }
-    public string Class => GetType().FullName;
-}
-
-// WebApi/Domain/Model.cs
-public abstract class Model<T> : BaseModel where T : Model<T>
-{
-    public ObjectType Type { get; init; }
-}
-
-// WebApi/ValueObjects/ObjectType.cs
-public sealed class ObjectType
-{
-    public string Id { get; }
-    public string Name { get; }
-    public string Remark { get; }
-
-    public ObjectType(string id, string name, string remark = null)
-    {
-        Id = id;
-        Name = name;
-        Remark = remark;
-    }
-}
-
-// WebApi/Domain/Sample.cs
-public class Sample : Model<Sample>
-{
-    public override string Id { get; init; }
-    public override string Name { get; init; }
-    public string Data { get; init; }
-
-    // ✅ 業務驗證方法允許存在於 Domain，且嚴禁出現於 DTO
-    public bool IsValid() => !string.IsNullOrEmpty(Id) && !string.IsNullOrEmpty(Name);
-}
-```
-
-### Mapper（Domain Entity ↔ DTO）
-
-```csharp
-// WebApi/Mapping/SampleMappingExtensions.cs
-/// <summary>
-/// 手動轉換方法；規則數量增加、欄位映射複雜時可改用 Mapster 或 AutoMapper，
-/// 但轉換邏輯必須留在 WebApi 專案內，嚴禁外洩至 MCP.Contracts。
-/// </summary>
-public static class SampleMappingExtensions
-{
-    public static SampleDto ToDto(this Sample entity) => new()
-    {
-        Id       = entity.Id,
-        Name     = entity.Name,
-        TypeId   = entity.Type?.Id,
-        TypeName = entity.Type?.Name,
-        Data     = entity.Data,
-    };
-
-    public static Sample ToDomain(this SampleDto dto) => new()
-    {
-        Id   = dto.Id,
-        Name = dto.Name,
-        Data = dto.Data,
-        Type = new ObjectType(dto.TypeId, dto.TypeName),
-    };
-}
-```
-
-### Request DTO
-
-```csharp
-// WebApi/DTOs/SampleRequest.cs
-public class FindSampleRequest
-{
-    [Required]
-    [MaxLength(50)]
-    public string Id { get; init; }
-}
-
-public class RegisterSampleRequest
-{
-    [Required]
-    [MaxLength(50)]
-    public string Id { get; init; }
-
-    [Required]
-    [MaxLength(200)]
-    public string Name { get; init; }
-
-    [Required]
-    public string TypeId { get; init; }
-
-    public string Data { get; init; }
-}
-```
-
-### Controller
-
-```csharp
-// WebApi/Controllers/SampleController.cs
-/// <summary>Sample 管理 API</summary>
-[ApiController]
-[Route("api/[controller]")]
-[Produces("application/json")]
-public class SampleController : ControllerBase
-{
-    private readonly ISampleRepository _repository;
-
-    public SampleController(ISampleRepository repository)
-    {
-        _repository = repository;
-    }
-
-    /// <summary>依 ID 查詢 Sample</summary>
-    [HttpPost("find")]
-    [ProducesResponseType(typeof(ApiResponse<SampleDto>), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ApiResponse<SampleDto>), StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(typeof(ApiResponse<SampleDto>), StatusCodes.Status500InternalServerError)]
-    public async Task<IActionResult> FindById([FromBody] FindSampleRequest request)
-    {
-        if (!ModelState.IsValid)
-            return BadRequest(ApiResponse<SampleDto>.Fail("請求參數驗證失敗"));
-
-        try
-        {
-            var sample = await _repository.FindByIdAsync(request.Id);
-            if (sample == null)
-                return Ok(ApiResponse<SampleDto>.Fail($"找不到 ID 為 {request.Id} 的 Sample"));
-
-            return Ok(ApiResponse<SampleDto>.Ok(sample));
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, ApiResponse<SampleDto>.Fail("伺服器發生錯誤，請稍後再試"));
-        }
-    }
-
-    /// <summary>新增 Sample</summary>
-    [HttpPost("register")]
-    [ProducesResponseType(typeof(ApiResponse<bool>), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ApiResponse<bool>), StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(typeof(ApiResponse<bool>), StatusCodes.Status500InternalServerError)]
-    public async Task<IActionResult> Register([FromBody] RegisterSampleRequest request)
-    {
-        if (!ModelState.IsValid)
-            return BadRequest(ApiResponse<bool>.Fail("請求參數驗證失敗"));
-
-        try
-        {
-            // ✅ Controller 只組裝 DTO，不接觸 Domain Entity
-            var dto = new SampleDto
-            {
-                Id     = request.Id,
-                Name   = request.Name,
-                Data   = request.Data,
-                TypeId = request.TypeId,
-            };
-
-            var result = await _repository.RegisterAsync(dto);
-            return Ok(result
-                ? ApiResponse<bool>.Ok(true)
-                : ApiResponse<bool>.Fail("新增失敗，請確認資料後重試"));
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, ApiResponse<bool>.Fail("伺服器發生錯誤，請稍後再試"));
-        }
-    }
-}
-```
-
-### SQL Repository 實作（內部用 Domain Entity，對外回傳 DTO）
-
-```csharp
-// WebApi/Infrastructure/Repositories/SqlSampleRepository.cs
-public class SqlSampleRepository : ISampleRepository
-{
-    private readonly string _connectionString;
-
-    public SqlSampleRepository(IConfiguration config)
-    {
-        _connectionString = config.GetConnectionString("Default");
-    }
-
-    public async Task<SampleDto?> FindByIdAsync(string id)
-    {
-        var entity = await QueryEntityAsync(id);
-        return entity?.ToDto(); // ✅ Domain Entity 在這裡轉換為 DTO 後才離開 Repository
-    }
-
-    public async Task<IReadOnlyList<SampleDto>> FindAllAsync()
-    {
-        await using var con = new SqlConnection(_connectionString);
-        await con.OpenAsync();
-
-        var cmd = new SqlCommand(
-            "SELECT s.*, t.Name AS TypeName FROM Sample s LEFT JOIN Type t ON s.TypeId = t.Id",
-            con);
-
-        await using var reader = await cmd.ExecuteReaderAsync();
-        var results = new List<SampleDto>();
-        while (await reader.ReadAsync())
-        {
-            results.Add(ReadEntity(reader).ToDto());
-        }
-        return results;
-    }
-
-    public async Task<bool> RegisterAsync(SampleDto sample)
-    {
-        var entity = sample.ToDomain();
-        if (!entity.IsValid()) return false; // ✅ 業務驗證留在 Domain Entity
-
-        await using var con = new SqlConnection(_connectionString);
-        await con.OpenAsync();
-
-        var cmd = new SqlCommand(
-            "INSERT INTO Sample (Id, Name, TypeId, Data) VALUES (@id, @name, @typeId, @data)",
-            con);
-        cmd.Parameters.AddWithValue("@id",     entity.Id);
-        cmd.Parameters.AddWithValue("@name",   entity.Name);
-        cmd.Parameters.AddWithValue("@typeId", entity.Type?.Id ?? string.Empty);
-        cmd.Parameters.AddWithValue("@data",   entity.Data ?? string.Empty);
-
-        return await cmd.ExecuteNonQueryAsync() > 0;
-    }
-
-    public async Task<bool> UpdateAsync(SampleDto sample)
-    {
-        var entity = sample.ToDomain();
-
-        await using var con = new SqlConnection(_connectionString);
-        await con.OpenAsync();
-
-        var cmd = new SqlCommand(
-            "UPDATE Sample SET Name = @name, TypeId = @typeId, Data = @data WHERE Id = @id",
-            con);
-        cmd.Parameters.AddWithValue("@id",     entity.Id);
-        cmd.Parameters.AddWithValue("@name",   entity.Name);
-        cmd.Parameters.AddWithValue("@typeId", entity.Type?.Id ?? string.Empty);
-        cmd.Parameters.AddWithValue("@data",   entity.Data ?? string.Empty);
-
-        return await cmd.ExecuteNonQueryAsync() > 0;
-    }
-
-    private async Task<Sample?> QueryEntityAsync(string id)
-    {
-        await using var con = new SqlConnection(_connectionString);
-        await con.OpenAsync();
-
-        var cmd = new SqlCommand(
-            "SELECT s.*, t.Name AS TypeName FROM Sample s LEFT JOIN Type t ON s.TypeId = t.Id WHERE s.Id = @id",
-            con);
-        cmd.Parameters.AddWithValue("@id", id);
-
-        await using var reader = await cmd.ExecuteReaderAsync();
-        return await reader.ReadAsync() ? ReadEntity(reader) : null;
-    }
-
-    private static Sample ReadEntity(SqlDataReader reader) => new()
-    {
-        Id   = reader["Id"].ToString(),
-        Name = reader["Name"].ToString(),
-        Data = reader["Data"].ToString(),
-        Type = new ObjectType(reader["TypeId"].ToString(), reader["TypeName"].ToString()),
-    };
-}
-```
-
-### Program.cs（DI 注入 + Swagger）
-
-```csharp
-// WebApi/Program.cs
-using System.Reflection;
-using Microsoft.OpenApi.Models;
-
-var builder = WebApplication.CreateBuilder(args);
-
-builder.Services.AddControllers();
-
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen(options =>
-{
-    options.SwaggerDoc("v1", new OpenApiInfo { Title = "Sample API", Version = "v1" });
-
-    var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
-    var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
-    options.IncludeXmlComments(xmlPath);
-});
-
-// Repository 介面來自 MCP.Contracts，實作來自 WebApi 自己的 Infrastructure 層
-builder.Services.AddScoped<ISampleRepository, SqlSampleRepository>();
-
-var app = builder.Build();
-
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI(options =>
-    {
-        options.SwaggerEndpoint("/swagger/v1/swagger.json", "Sample API v1");
-    });
-}
-
-app.UseAuthorization();
-app.MapControllers();
-app.Run();
-```
-
-### .csproj 設定
-
-```xml
-<!-- WebApi/WebApi.csproj -->
-<ItemGroup>
-    <ProjectReference Include="..\MCP.Contracts\MCP.Contracts.csproj" />
-</ItemGroup>
-
-<PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
-    <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <NoWarn>$(NoWarn);1591</NoWarn>
-</PropertyGroup>
-```
-
-```xml
-<!-- MCP.Contracts/MCP.Contracts.csproj -->
-<!-- ❌ 嚴禁：MCP.Contracts 不得參考 WebApi 專案或任何資料庫套件 -->
-<PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
-</PropertyGroup>
-```
+本版只說明每條規則的意圖、原因與合格／不合格的判斷界線，不提供程式碼範例，也不指定唯一做法；手段由專案自選，達成意圖即合格。
+
+## API-01 依專案取捨分層
+- 意圖：分層與資料存取細節依專案實際情況決定。
+- 為什麼：Domain 型、Gateway 型、整合型、BFF 的資料來源與複雜度不同，統一分層會逼出沒有對應物的空殼設計。
+- 合格：有資料庫的專案做出清楚的實體／契約分離；無資料庫或薄轉發的專案不為了形式建立空的 Domain 或 Repository 層。
+- 不合格：為了符合某種範本而新增沒有實際職責的類別或專案。
+
+## API-06 實體不外洩，契約型別獨立
+- 意圖：內部實體與持久化模型不直接序列化對外；Request／Response 型別獨立定義。
+- 為什麼：直接序列化內部實體會把資料表結構與內部欄位綁進對外契約，也可能洩漏不該公開的資料。
+- 合格：對外型別有獨立定義，不含業務邏輯與持久化標記；轉換手段（手寫、對應工具）不限。
+- 不合格：Controller 直接回傳資料庫實體；對外型別帶有持久化屬性或業務方法。
+
+## API-09 Controller 只做協定轉接
+- 意圖：Controller 負責接收請求、驗證、呼叫服務、回傳結果。
+- 為什麼：業務邏輯放進 Controller 會綁死 HTTP，難以重用與測試。
+- 合格：Action 本體短，主要是呼叫與結果轉換。
+- 不合格：Action 內含資料查詢、業務判斷或多步驟流程編排。
+
+## API-10 協定風格一致
+- 意圖：專案或端點類別內採同一種協定風格，並聲明。
+- 為什麼：同類端點風格混用，呼叫端無法預期方法與參數位置。
+- 合格：自有 API 一律 RPC 型 POST，或一律依 REST 動詞語意；同一專案可分區（如自有 API 與透傳端點），每區內一致並聲明分區。
+- 不合格：同一類端點有的用 GET 查詢、有的用 POST 查詢且無說明。
+
+## API-11 回應一致、錯誤可辨識
+- 意圖：呼叫端能一致地判斷成功與否、取得資料與錯誤訊息。
+- 為什麼：回應形狀不一致會讓每個呼叫端自行猜測並處理例外。
+- 合格：信封欄位名稱與大小寫由專案決定；成功與否可由狀態碼加欄位組合辨識；錯誤 Body 不為空、不含堆疊與內部細節；專案使用的狀態碼有文件。
+- 不合格：失敗仍回 200 且無可辨識的失敗標記；錯誤時 Body 為空；回傳堆疊追蹤。透傳後端回應的端點照後端語意，不算不合格。
+
+## API-13 Singleton 不持有 Scoped
+- 意圖：服務生命週期安全。
+- 為什麼：Singleton 持有 Scoped 依賴會造成請求資源被長期持有（captive dependency），產生難以重現的錯誤。
+- 合格：無狀態服務可用 Singleton；Singleton 需要請求資料時逐次取得，而非持有。
+- 不合格：Singleton 的建構子注入 Scoped 服務。
+
+## API-14 輸入驗證集中
+- 意圖：驗證在進入業務邏輯前，於一致的集中位置完成。
+- 為什麼：驗證散落於各 Action 會漏檢、重複，且錯誤格式不一致。
+- 合格：驗證位於 DTO、Filter 或專用 Validator，手段不限。
+- 不合格：各 Action 開頭各自寫不同的手動驗證。
+
+## API-15 暴露範圍須有意識控管
+- 意圖：生產環境對外暴露的 API 文件與維運端點，是有意識的決定。
+- 為什麼：文件與維運端點會暴露內部結構或可改變狀態的操作。
+- 合格：預設僅開發環境開啟；若生產開啟，有網路隔離或存取控制，並於專案文件聲明暴露範圍。
+- 不合格：不加思考地在生產環境公開含無驗證寫入操作的端點。
+
+## API-16 對外 API 有可產生的說明
+- 意圖：每個對外 API 與其可能回傳的狀態碼都有說明。
+- 為什麼：呼叫端與維運需要查得到每個端點的契約。
+- 合格：說明可由程式碼註解或屬性產生，也可在備註逐一列出狀態碼；手段自選。
+- 不合格：對外端點沒有任何說明，或說明與實際回傳的狀態碼不符。
